@@ -26,7 +26,7 @@ in stdenv.mkDerivation {
                       --env REGISTRY_HTTP_ADDR=$registry\
                       --publish 5432:26257 --publish 8080:8080\
                       -v "$PWD/cockroach-data/roach1:/cockroach/cockroach-data"\
-                      cockroachdb/cockroach:v1.1.1 start --insecure
+                      cockroachdb/cockroach start --insecure
       fi
 
       # Wait 'till cockroachdb starts

@@ -67,8 +67,8 @@ in stdenv.mkDerivation {
       pip install jedi
       pip install tox
 
-      # dev deps
-      pip install -r requirements.txt
+      # project
+      pip install -e .
     fi
 
     source venv/bin/activate

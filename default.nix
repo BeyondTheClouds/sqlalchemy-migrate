@@ -26,7 +26,7 @@ in stdenv.mkDerivation {
                       --env REGISTRY_HTTP_ADDR=$registry\
                       --publish 5432:26257 --publish 8080:8080\
                       -v "$PWD/cockroach-data/roach1:/cockroach/cockroach-data"\
-                      cockroachdb/cockroach start --insecure
+                      cockroachdb/cockroach:v2.0.4 start --insecure
       fi
 
       # Wait 'till cockroachdb starts
@@ -63,6 +63,7 @@ in stdenv.mkDerivation {
       # spacemacs deps
       pip install service_factory
       pip install ipython
+      pip install ipdb
       pip install jedi
       pip install tox
 

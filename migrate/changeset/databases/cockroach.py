@@ -17,13 +17,14 @@ from operator import attrgetter
 def compose(f, g):
     return lambda x: f(g(x))
 
+
 # migrate.tests.changeset.test_changeset.TestAddDropColumn.test_drop_all_columns_of_composite_index
 # python setup.py testr --testr-args="--subunit $TESTRARGS  --concurrency=1" | subunit-trace -f
 # python -m testtools.run discover --load-list my-list
 
 # ------------------------------------------- CockroachDB Dialects Workaround
 # CockroachDB Dialect misses BOOL type name
-from cockroachdb.sqlalchemy.dialect import _type_map, CockroachDBDialect
+from cockroachdb.sqlalchemy.dialect import CockroachDBDialect
 
 class CockroachDDLCompiler(postgresql.PGDDLCompiler):
     # Handle: sqlalchemy.Column(sqlalchemy.ForeignKey())
@@ -249,6 +250,7 @@ class CockroachConstraintGenerator(postgres.PGConstraintGenerator, CockroachAlte
 
         """
         pk_names = map(attrgetter('name'), constraint.columns.values())
+
         def set_primary_keys(table):
             for col in table.columns:
                 if col.name in pk_names:
@@ -343,20 +345,33 @@ class CockroachConstraintDropper(postgres.PGConstraintDropper, CockroachAlterTab
     def visit_migrate_unique_constraint(self, constraint):
         """Drop INDEX if the unique constraint is one"""
         # Get indexes on that columns
-        insp = reflection.Inspector.from_engine(constraint.table.metadata.bind)
-        indexes = set([i['name']
-                       for i in insp.get_indexes(constraint.table)
-                       for c in i['column_names']
-                       if i['unique'] and c in constraint.columns])
-        indexes = map(CockroachConstraintDropper._to_index(constraint.table), indexes)
+        table_name = self.preparer.format_table(constraint.table)
+        constraint_name = constraint.name or constraint.autoname()
 
-        # Drop indexes if the unique constraint is implemented by an Index
-        for i in indexes:
-              self.append("DROP INDEX %s CASCADE" % self._prepared_index_name(i))
-              self.execute()
+        self.append("DROP INDEX IF EXISTS %s@%s CASCADE" %
+                    (table_name, constraint_name))
+        self.execute()
 
-        if not indexes:
-            super(CockroachConstraintDropper, self).visit_migrate_unique_constraint(constraint)
+        self.append("ALTER TABLE %s DROP CONSTRAINT IF EXISTS %s" %
+                    (table_name, constraint_name))
+        self.execute()
+
+        # insp = reflection.Inspector.from_engine(constraint.table.metadata.bind)
+        # indexes = set([i['name']
+        #                for i in insp.get_indexes(constraint.table)
+        #                for c in i['column_names']
+        #                if i['unique'] and c in constraint.columns])
+        # print(indexes)
+        # indexes = map(CockroachConstraintDropper._to_index(constraint.table), indexes)
+        #
+        # # Drop indexes if the unique constraint is implemented by an Index
+        # for i in indexes:
+        #       self.append("DROP INDEX %s CASCADE" % self._prepared_index_name(i))
+        #       self.execute()
+        #
+        # if not indexes:
+        #     constraint.cascade = True
+        #     super(CockroachConstraintDropper, self).visit_migrate_unique_constraint(constraint)
 
 class CockroachDialect(postgres.PGDialect):
     columngenerator = CockroachColumnGenerator

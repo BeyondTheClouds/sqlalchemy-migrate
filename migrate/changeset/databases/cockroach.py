@@ -17,10 +17,13 @@ from operator import attrgetter
 def compose(f, g):
     return lambda x: f(g(x))
 
+# migrate.tests.changeset.test_changeset.TestAddDropColumn.test_drop_all_columns_of_composite_index
+# python setup.py testr --testr-args="--subunit $TESTRARGS  --concurrency=1" | subunit-trace -f
+# python -m testtools.run discover --load-list my-list
+
 # ------------------------------------------- CockroachDB Dialects Workaround
 # CockroachDB Dialect misses BOOL type name
 from cockroachdb.sqlalchemy.dialect import _type_map, CockroachDBDialect
-_type_map['bool'] = _type_map['boolean']
 
 class CockroachDDLCompiler(postgresql.PGDDLCompiler):
     # Handle: sqlalchemy.Column(sqlalchemy.ForeignKey())
@@ -34,22 +37,22 @@ class CockroachDDLCompiler(postgresql.PGDDLCompiler):
 
         super(CockroachDDLCompiler, self).visit_foreign_key_constraint(constraint)
 
-    def visit_drop_index(self, drop):
-        """DROP INDEX ...
+    # def visit_drop_index(self, drop):
+    #     """DROP INDEX ...
 
-        CockroachDB doesn't support the drop of table's `primary`
-        index. This workaround passes the drop and doesn't delete the
-        index if it's primary one.
+    #     CockroachDB doesn't support the drop of table's `primary`
+    #     index. This workaround passes the drop and doesn't delete the
+    #     index if it's primary one.
 
-        See, https://www.cockroachlabs.com/docs/stable/drop-index.html
+    #     See, https://www.cockroachlabs.com/docs/stable/drop-index.html
 
-        """
-        index = drop.element
+    #     """
+    #     index = drop.element
 
-        if index.name == 'primary':
-            return "SELECT 1"
-        else:
-            return super(CockroachDDLCompiler, self).visit_drop_index(drop)
+    #     if index.name == 'primary':
+    #         return "SELECT 1"
+    #     else:
+    #         return super(CockroachDDLCompiler, self).visit_drop_index(drop)
 
 
 CockroachDBDialect.ddl_compiler = CockroachDDLCompiler
